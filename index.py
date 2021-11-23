@@ -1,7 +1,6 @@
 from flask import Flask,jsonify
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api,reqparse
 import sqlite3
-import traceback
 import math 
 
 app = Flask(__name__)
@@ -46,7 +45,6 @@ class BoatsDB:
         array = [dict(zip(headers,row)) for row in list_of_lists]
         return array
 
-db = BoatsDB()
 
 class Retrieve(Resource):
     def get(self):
@@ -54,15 +52,14 @@ class Retrieve(Resource):
         parser.add_argument('latitude',type=float,required=True)
         parser.add_argument('longitude',type=float,required=True)
         args = parser.parse_args()
-        try:
-            array = db.read_table()
-            return jsonify(Helpers().array_sort_distance(array,args['latitude'],args['longitude']))
-        except Exception as err:
-            error_message = traceback.format_exc()
-            return error_message
+        db = BoatsDB()
+        array = db.read_table()
+        sorted_array = Helpers().array_sort_distance(array,args['latitude'],args['longitude'])
+        return jsonify(sorted_array)
+
 
 class Store(Resource):
-    def get(self):
+    def post(self):
         parser = reqparse.RequestParser()
         parser.add_argument('make',type=str,required=True)
         parser.add_argument('model',type=str,required=True)
@@ -70,6 +67,7 @@ class Store(Resource):
         parser.add_argument('latitude',type=float,required=True)
         parser.add_argument('longitude',type=float,required=True)
         args = parser.parse_args()
+        db = BoatsDB()
         db.update_table(args['make'],args['model'],args['length'],args['latitude'],args['longitude'])
         return args
 
@@ -82,4 +80,4 @@ def index():
     return 'HarborMoor API'
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0',threaded=False)#debug=True, 
